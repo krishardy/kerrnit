@@ -36,7 +36,7 @@ def load_alteration_rules(path):
     _alt_rules = tuple(alt_rules)
 
 
-def get_alterations(domain, alter_tld=True):
+def get_alterations(domain, alter_tld=True, max_pct_length=0.1):
     """Create a permutation of all alterations of the given domain
 
     :param domain: The domain to alter
@@ -52,6 +52,10 @@ def get_alterations(domain, alter_tld=True):
         i += 1
         if i >= len(d):
             # i is off right end.  No alterations are possible.
+            continue
+
+        if float(len(d) - len(domain)) / len(domain) > max_pct_length:
+            # The string is too long.  Skip.
             continue
 
         # Run all alterations of d
@@ -76,7 +80,7 @@ def is_registered(domain):
             return AVAILABLE
     except Exception as e:
         if str(e).startswith("Unknown TLD"):
-            logger.warning("Unknown TLD: {}".format(domain))
+            logger.debug("Unknown TLD: {}".format(domain))
             return UNKNOWN_TLD
     return REGISTERED
 
@@ -101,6 +105,7 @@ def main():
     parser.add_argument("-a", "--alt", required=False, type=str, help="Path to alteration text file.  Each line represents a source string followed by a space and then the replacement string.")
     parser.add_argument("-d", "--debug", required=False, const=True, default=False, action="store_const", help="Show debug information")
     parser.add_argument("-s", "--screenshot", required=False, const=True, default=False, action="store_const", help="Capture screenshot of altered domains")
+    parser.add_argument("-l", "--max_pct_length", required=False, type=float, default=0.1, help="Maximum percent increase in length over the starting domain.  Default=0.1")
     parser.add_argument("site", type=str, help="Domain name to test")
     args = parser.parse_args()
 
@@ -110,7 +115,7 @@ def main():
     if args.debug:
         logger.setLevel(level=logging.DEBUG)
 
-    test_domains = get_alterations(args.site)
+    test_domains = get_alterations(args.site, max_pct_length=args.max_pct_length)
     logger.debug("{0} is altered to {1}".format(args.site, test_domains))
 
     driver = None
